@@ -55,7 +55,7 @@ pub fn main() {
                         })
                         .unwrap();
                         response.push(b'\n');
-                        stream.write(&response).unwrap();
+                        stream.write_all(&response).unwrap();
                     }
                     _ => {
                         eprintln!("Invalid method: {:?}", request.method);
@@ -69,7 +69,7 @@ pub fn main() {
 }
 
 fn send_malformed_and_close(stream: &mut TcpStream) {
-    stream.write(&[b'{', b'\n']).unwrap();
+    stream.write_all(&[b'{', b'\n']).unwrap();
     stream.shutdown(std::net::Shutdown::Both).unwrap();
 }
 

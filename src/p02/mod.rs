@@ -1,9 +1,8 @@
 use std::{
     collections::LinkedList,
     io::{Read, Write},
-    net::{TcpListener},
+    net::TcpListener,
 };
-
 
 pub fn main() {
     let listener = TcpListener::bind("0.0.0.0:1200").unwrap();
@@ -16,7 +15,7 @@ pub fn main() {
             }
         };
         std::thread::spawn(move || {
-            let mut prices = LinkedList::<(u32, i32)>::new();
+            let mut prices = LinkedList::<(i32, i32)>::new();
             loop {
                 let mut bytes = [0; 9];
                 if let Err(e) = stream.read_exact(&mut bytes) {
@@ -27,7 +26,7 @@ pub fn main() {
                 let (op_b, rest) = bytes.split_at(1);
                 let (num1_b, num2_b) = rest.split_at(4);
                 let op = op_b[0];
-                let num1 = u32::from_be_bytes(num1_b.try_into().unwrap());
+                let num1 = i32::from_be_bytes(num1_b.try_into().unwrap());
                 let num2 = i32::from_be_bytes(num2_b.try_into().unwrap());
 
                 eprintln!("Received request: {} {} {}", op, num1, num2);
@@ -51,14 +50,14 @@ pub fn main() {
                         {
                             cursor.move_next();
                         }
-                        let mut n: u32 = 0;
+                        let mut n = 0;
                         let mut sum = 0;
-                        while let Some((cursor_ts, cursor_value)) = cursor.current() && *cursor_ts <= num1 {
+                        while let Some((cursor_ts, cursor_value)) = cursor.current() && *cursor_ts <= num2 {
                             n += 1;
                             sum += cursor_value;
                             cursor.move_next();
                         };
-                        stream.write(&(sum / n as i32).to_be_bytes()).unwrap();
+                        stream.write_all(&(sum / n).to_be_bytes()).unwrap();
                     }
                     _ => {
                         eprintln!("Invalid operation: {}", op);

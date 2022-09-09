@@ -22,7 +22,7 @@ pub fn main() {
                 if read == 0 {
                     break;
                 }
-                stream.write(&bytes).unwrap();
+                stream.write_all(&bytes).unwrap();
             }
         });
     }
