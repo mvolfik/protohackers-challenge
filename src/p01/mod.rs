@@ -48,15 +48,13 @@ pub fn main() {
                 eprintln!("Received request: {:?}", request);
                 match request.method.as_str() {
                     "isPrime" => {
-                        stream
-                            .write(
-                                &serde_json::to_vec(&Response {
-                                    method: "isPrime".to_string(),
-                                    prime: is_prime(request.number),
-                                })
-                                .unwrap(),
-                            )
-                            .unwrap();
+                        let mut response = serde_json::to_vec(&Response {
+                            method: "isPrime".to_string(),
+                            prime: is_prime(request.number),
+                        })
+                        .unwrap();
+                        response.push(b'\n');
+                        stream.write(&response).unwrap();
                     }
                     _ => {
                         eprintln!("Invalid method: {:?}", request.method);
