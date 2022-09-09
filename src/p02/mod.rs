@@ -15,7 +15,7 @@ pub fn main() {
             }
         };
         std::thread::spawn(move || {
-            let mut prices = LinkedList::<(i32, i32)>::new();
+            let mut prices = Vec::<(i32, i32)>::new();
             let mut buffer = BufReader::new(stream.try_clone().unwrap());
             loop {
                 let mut bytes = [0; 9];
@@ -33,31 +33,15 @@ pub fn main() {
                 eprintln!("Received request: {} {} {}", op, num1, num2);
                 match op {
                     b'I' => {
-                        let mut cursor = prices.cursor_front_mut();
-                        while cursor
-                            .current()
-                            .is_some_and(|(cursor_ts, _)| *cursor_ts < num1)
-                        {
-                            cursor.move_next();
-                        }
-                        cursor.insert_before((num1, num2));
+                        prices.push((num1, num2));
                     }
                     b'Q' => {
-                        let mut cursor = prices.cursor_front();
-                        while cursor
-                            .current()
-                            .is_some_and(|(cursor_ts, _)| *cursor_ts < num1)
-                        {
-                            cursor.move_next();
-                        }
-                        let mut n = 0;
-                        let mut sum = 0;
-                        while let Some((cursor_ts, cursor_value)) = cursor.current() && *cursor_ts <= num2 {
-                            n += 1;
-                            sum += cursor_value;
-                            cursor.move_next();
-                        };
-                        let mean = if n == 0 { 0 } else { sum / n };
+                        prices.sort();
+                        let start = prices.partition_point(|(timestamp, _)| *timestamp >= num1);
+                        let end = prices.partition_point(|(timestamp, _)| *timestamp > num2);
+                        let n = end - start - 1;
+                        let sum = prices[start..end].iter().map(|(_, price)| price).sum::<i32>();
+                        let mean = if n == 0 { 0 } else { sum / n as i32 };
                         stream.write_all(&(mean).to_be_bytes()).unwrap();
                     }
                     _ => {
