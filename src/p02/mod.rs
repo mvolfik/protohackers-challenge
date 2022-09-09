@@ -1,6 +1,6 @@
 use std::{
     collections::LinkedList,
-    io::{Read, Write},
+    io::{BufReader, Read, Write},
     net::TcpListener,
 };
 
@@ -16,9 +16,10 @@ pub fn main() {
         };
         std::thread::spawn(move || {
             let mut prices = LinkedList::<(i32, i32)>::new();
+            let mut buffer = BufReader::new(stream.try_clone().unwrap());
             loop {
                 let mut bytes = [0; 9];
-                if let Err(e) = stream.read_exact(&mut bytes) {
+                if let Err(e) = buffer.read_exact(&mut bytes) {
                     eprintln!("Error reading from stream: {:?}", e);
                     stream.shutdown(std::net::Shutdown::Both).unwrap();
                     break;
