@@ -40,8 +40,9 @@ pub fn main() {
                     b'Q' => {
                         prices.sort();
                         let start = prices.partition_point(|(timestamp, _)| *timestamp >= num1);
-                        let end = prices.partition_point(|(timestamp, _)| *timestamp < num2);
+                        let end = prices.partition_point(|(timestamp, _)| *timestamp > num2);
                         let n = end - start - 1;
+                        eprintln!("Found {} prices (items {}..{})", n, start, end);
                         let sum = prices[start..end]
                             .iter()
                             .map(|(_, price)| price)
