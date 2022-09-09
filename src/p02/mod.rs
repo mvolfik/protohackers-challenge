@@ -32,7 +32,6 @@ pub fn main() {
                 let num1 = i32::from_be_bytes(num1_b.try_into().unwrap());
                 let num2 = i32::from_be_bytes(num2_b.try_into().unwrap());
 
-                eprintln!("Received request: {} {} {}", op, num1, num2);
                 match op {
                     b'I' => {
                         prices.push((num1, num2));
@@ -47,6 +46,7 @@ pub fn main() {
                             .map(|(_, price)| price)
                             .sum::<i32>();
                         let mean = if n == 0 { 0 } else { sum / n as i32 };
+                        eprintln!("Request: [{}, {}]; Response: {}", num1, num2, mean);
                         stream.write_all(&(mean).to_be_bytes()).unwrap();
                     }
                     _ => {
