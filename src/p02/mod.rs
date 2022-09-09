@@ -1,10 +1,12 @@
 use std::{
     io::{BufReader, Read, Write},
     net::TcpListener,
+    sync::{Arc, Mutex},
 };
 
 pub fn main() {
     let listener = TcpListener::bind("0.0.0.0:1200").unwrap();
+    let lock: Arc<Mutex<()>> = Default::default();
     for incoming in listener.into_incoming() {
         let mut stream = match incoming {
             Ok(stream) => stream,
@@ -13,6 +15,7 @@ pub fn main() {
                 continue;
             }
         };
+        let lock = Arc::clone(&lock);
         std::thread::spawn(move || {
             let mut prices = Vec::<(i32, i32)>::new();
             let mut buffer = BufReader::new(stream.try_clone().unwrap());
@@ -46,6 +49,7 @@ pub fn main() {
                             .map(|(_, price)| price)
                             .sum::<i32>();
                         let mean = if n == 0 { 0 } else { sum / n as i32 };
+                        let guard = lock.lock().unwrap();
                         eprintln!("Request: [{}, {}]; Response: {}", num1, num2, mean);
                         for (ts, _) in &prices {
                             eprintln!(
@@ -55,6 +59,7 @@ pub fn main() {
                                 ts,
                             );
                         }
+                        drop(guard);
                         stream.write_all(&(mean).to_be_bytes()).unwrap();
                     }
                     _ => {
