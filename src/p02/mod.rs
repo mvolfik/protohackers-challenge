@@ -57,7 +57,8 @@ pub fn main() {
                             sum += cursor_value;
                             cursor.move_next();
                         };
-                        stream.write_all(&(sum / n).to_be_bytes()).unwrap();
+                        let mean = if n == 0 { 0 } else { sum / n };
+                        stream.write_all(&(mean).to_be_bytes()).unwrap();
                     }
                     _ => {
                         eprintln!("Invalid operation: {}", op);
