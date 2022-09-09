@@ -75,6 +75,9 @@ fn send_malformed_and_close(stream: &mut TcpStream) {
 
 fn is_prime(value: JsonNumber) -> bool {
     let Some(n) = value.as_u64() else { return false; };
+    if n < 2 {
+        return false;
+    }
     for i in 2..=(n as f64).sqrt() as u64 {
         if n % i == 0 {
             return false;
