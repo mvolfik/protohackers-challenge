@@ -47,6 +47,14 @@ pub fn main() {
                             .sum::<i32>();
                         let mean = if n == 0 { 0 } else { sum / n as i32 };
                         eprintln!("Request: [{}, {}]; Response: {}", num1, num2, mean);
+                        for (ts, _) in &prices {
+                            eprintln!(
+                                "{}{} {}",
+                                if *ts >= num1 { '#' } else { ' ' },
+                                if *ts < num2 { '#' } else { ' ' },
+                                ts,
+                            );
+                        }
                         stream.write_all(&(mean).to_be_bytes()).unwrap();
                     }
                     _ => {
