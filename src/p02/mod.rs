@@ -38,7 +38,7 @@ pub fn main() {
                     b'Q' => {
                         prices.sort();
                         let start = prices.partition_point(|(timestamp, _)| *timestamp >= num1);
-                        let end = prices.partition_point(|(timestamp, _)| *timestamp > num2);
+                        let end = prices.partition_point(|(timestamp, _)| *timestamp < num2);
                         let n = end - start - 1;
                         let sum = prices[start..end].iter().map(|(_, price)| price).sum::<i32>();
                         let mean = if n == 0 { 0 } else { sum / n as i32 };
