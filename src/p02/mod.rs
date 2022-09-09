@@ -1,5 +1,4 @@
 use std::{
-    collections::LinkedList,
     io::{BufReader, Read, Write},
     net::TcpListener,
 };
@@ -20,7 +19,10 @@ pub fn main() {
             loop {
                 let mut bytes = [0; 9];
                 if let Err(e) = buffer.read_exact(&mut bytes) {
-                    eprintln!("Error reading from stream: {:?}. Read buffer contents: {:?}", e, bytes);
+                    eprintln!(
+                        "Error reading from stream: {:?}. Read buffer contents: {:?}",
+                        e, bytes
+                    );
                     stream.shutdown(std::net::Shutdown::Both).unwrap();
                     break;
                 }
@@ -40,7 +42,10 @@ pub fn main() {
                         let start = prices.partition_point(|(timestamp, _)| *timestamp >= num1);
                         let end = prices.partition_point(|(timestamp, _)| *timestamp < num2);
                         let n = end - start - 1;
-                        let sum = prices[start..end].iter().map(|(_, price)| price).sum::<i32>();
+                        let sum = prices[start..end]
+                            .iter()
+                            .map(|(_, price)| price)
+                            .sum::<i32>();
                         let mean = if n == 0 { 0 } else { sum / n as i32 };
                         stream.write_all(&(mean).to_be_bytes()).unwrap();
                     }
