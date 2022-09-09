@@ -46,19 +46,6 @@ pub fn main() {
                         let n = end as i128 - start as i128;
 
                         let guard = lock.lock().unwrap();
-                        eprintln!(
-                            "Request: [{}, {}]; Start: {}; End: {}; N: {};",
-                            num1, num2, start, end, n
-                        );
-                        for (i, (ts, _)) in prices.iter().enumerate() {
-                            eprintln!(
-                                "{:6} {}{} {}",
-                                i,
-                                if *ts < num1 { '#' } else { ' ' },
-                                if *ts <= num2 { '#' } else { ' ' },
-                                ts,
-                            );
-                        }
                         let mean = if n <= 0 {
                             0
                         } else {
