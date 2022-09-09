@@ -43,7 +43,7 @@ pub fn main() {
                         prices.sort();
                         let start = prices.partition_point(|(timestamp, _)| *timestamp < num1);
                         let end = prices.partition_point(|(timestamp, _)| *timestamp <= num2);
-                        let n = end as i32 - start as i32;
+                        let n = end as i128 - start as i128;
 
                         let guard = lock.lock().unwrap();
                         eprintln!(
@@ -62,11 +62,11 @@ pub fn main() {
                         let mean = if n <= 0 {
                             0
                         } else {
-                            let sum = prices[start..end]
+                            let sum: i128 = prices[start..end]
                                 .iter()
-                                .map(|(_, price)| price)
-                                .sum::<i32>();
-                            sum / n
+                                .map(|(_, price)| *price as i128)
+                                .sum();
+                            (sum / n) as i32
                         };
                         eprintln!("Mean: {}", mean);
                         drop(guard);
