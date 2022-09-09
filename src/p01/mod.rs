@@ -4,11 +4,12 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
+use serde_json::Number as JsonNumber;
 
 #[derive(Deserialize, Debug)]
 struct Request {
     method: String,
-    number: u64,
+    number: JsonNumber,
 }
 
 #[derive(Serialize)]
@@ -72,7 +73,8 @@ fn send_malformed_and_close(stream: &mut TcpStream) {
     stream.shutdown(std::net::Shutdown::Both).unwrap();
 }
 
-fn is_prime(n: u64) -> bool {
+fn is_prime(value: JsonNumber) -> bool {
+    let Some(n) = value.as_u64() else { return false; };
     for i in 2..=(n as f64).sqrt() as u64 {
         if n % i == 0 {
             return false;
