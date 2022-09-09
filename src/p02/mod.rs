@@ -50,10 +50,14 @@ pub fn main() {
                             .sum::<i32>();
                         let mean = if n == 0 { 0 } else { sum / n as i32 };
                         let guard = lock.lock().unwrap();
-                        eprintln!("Request: [{}, {}]; Response: {}", num1, num2, mean);
-                        for (ts, _) in &prices {
+                        eprintln!(
+                            "Request: [{}, {}]; Response: {}; Start: {}; End: {}; N: {};",
+                            num1, num2, mean, start, end, n
+                        );
+                        for (i, (ts, _)) in prices.iter().enumerate() {
                             eprintln!(
-                                "{}{} {}",
+                                "{:6} {}{} {}",
+                                i,
                                 if *ts >= num1 { '#' } else { ' ' },
                                 if *ts < num2 { '#' } else { ' ' },
                                 ts,
