@@ -20,7 +20,7 @@ pub fn main() {
             loop {
                 let mut bytes = [0; 9];
                 if let Err(e) = buffer.read_exact(&mut bytes) {
-                    eprintln!("Error reading from stream: {:?}", e);
+                    eprintln!("Error reading from stream: {:?}. Read buffer contents: {:?}", e, bytes);
                     stream.shutdown(std::net::Shutdown::Both).unwrap();
                     break;
                 }
@@ -41,7 +41,6 @@ pub fn main() {
                             cursor.move_next();
                         }
                         cursor.insert_before((num1, num2));
-                        eprintln!("Current list state: {:?}", prices);
                     }
                     b'Q' => {
                         let mut cursor = prices.cursor_front();
