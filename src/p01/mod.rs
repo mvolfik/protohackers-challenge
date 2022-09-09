@@ -5,7 +5,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct Request {
     method: String,
     number: u64,
@@ -45,6 +45,7 @@ pub fn main() {
                     }
                 };
 
+                eprintln!("Received request: {:?}", request);
                 match request.method.as_str() {
                     "isPrime" => {
                         stream
