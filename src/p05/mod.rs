@@ -61,6 +61,6 @@ fn proxy(mut source: BufReader<TcpStream>, mut dest: TcpStream, hint: String) {
             break;
         }
     }
-    source.get_ref().shutdown(std::net::Shutdown::Both);
-    dest.shutdown(std::net::Shutdown::Both);
+    let _ = source.get_ref().shutdown(std::net::Shutdown::Both);
+    let _ = dest.shutdown(std::net::Shutdown::Both);
 }
