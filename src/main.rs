@@ -6,6 +6,7 @@ mod p00;
 mod p01;
 mod p02;
 mod p03;
+mod p04;
 
 fn main() {
     let task: u8 = std::env::args().nth(1).unwrap().parse().unwrap();
@@ -14,6 +15,7 @@ fn main() {
         1 => p01::main(),
         2 => p02::main(),
         3 => p03::main(),
+        4 => p04::main(),
         _ => panic!("Invalid task number"),
     }
 }
