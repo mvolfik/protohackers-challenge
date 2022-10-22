@@ -41,6 +41,7 @@ fn proxy(mut source: BufReader<TcpStream>, mut dest: TcpStream, hint: String) {
             }
             _ => {}
         }
+        msg.pop();
         let mut output = String::new();
         for part in msg.split(' ') {
             if part.chars().nth(0) == Some('7')
@@ -55,6 +56,7 @@ fn proxy(mut source: BufReader<TcpStream>, mut dest: TcpStream, hint: String) {
             output += " ";
         }
         output.pop();
+        output.push('\n');
         eprintln!("S: {:?}\nT: {:?}", msg, output);
         if let Err(e) = dest.write_all(output.as_bytes()) {
             eprintln!("Error writing to stream {}: {:?}", hint, e);
