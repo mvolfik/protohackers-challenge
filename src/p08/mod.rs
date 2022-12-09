@@ -21,6 +21,9 @@ pub fn main() {
             loop {
                 let mut line = String::new();
                 buf_reader.read_line(&mut line).unwrap();
+                if line.is_empty() {
+                    continue;
+                }
                 eprintln!("--> {}", line);
                 let mut max = (0, String::new());
                 for part in line.split(',') {
@@ -94,6 +97,7 @@ fn new_ISL<T: BufRead, U: Write>(
         }
         panic!("Cipher is no-op: {:?}", cipher);
     }
+    eprintln!("Created a socket with cipher: {:?}", cipher);
     writer.counter = 0;
     return (
         InsecureSocketLayerReader {
