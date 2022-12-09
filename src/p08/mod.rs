@@ -30,7 +30,7 @@ pub fn main() {
                     }
                 }
                 writer
-                    .write(format!("{}x{}", max.0, max.1).as_bytes())
+                    .write(format!("{}x{}\n", max.0, max.1).as_bytes())
                     .unwrap();
             }
         });
