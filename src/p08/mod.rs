@@ -21,6 +21,7 @@ pub fn main() {
             loop {
                 let mut line = String::new();
                 buf_reader.read_line(&mut line).unwrap();
+                eprintln!("--> {}", line);
                 let mut max = (0, String::new());
                 for part in line.split(',') {
                     let (number, string) = part.split_once('x').unwrap();
