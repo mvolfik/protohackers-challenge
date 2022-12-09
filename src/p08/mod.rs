@@ -21,6 +21,7 @@ pub fn main() {
             loop {
                 let mut line = String::new();
                 buf_reader.read_line(&mut line).unwrap();
+                assert_eq!(line.pop(), Some('\n'));
                 if line.is_empty() {
                     continue;
                 }
