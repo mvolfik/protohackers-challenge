@@ -93,6 +93,7 @@ fn new_ISL<T: BufRead, U: Write>(
         }
         panic!("Cipher is no-op: {:?}", cipher);
     }
+    writer.counter = 0;
     return (
         InsecureSocketLayerReader {
             cipher,
