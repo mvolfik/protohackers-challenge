@@ -123,7 +123,16 @@ pub fn main() {
                                     (Some(a), Some(b)) => Some(std::cmp::max(a, b)),
                                 })
                                 .flatten();
-                            if !wait || job.is_some() {
+                            if let Some((j, qn)) = job {
+                                if !queues_map.1.contains_key(&j.id) {
+                                    queues_map.0.get_mut(qn).unwrap().pop();
+                                    job = None;
+                                    continue;
+                                } else {
+                                    break;
+                                }
+                            }
+                            if !wait {
                                 break;
                             }
                             queues_map = waker.wait(queues_map).unwrap();
