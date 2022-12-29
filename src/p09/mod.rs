@@ -119,7 +119,6 @@ pub fn main() {
                             if let Some((j, qn)) = job {
                                 if !queues_map.1.contains_key(&j.id) {
                                     queues_map.0.get_mut(qn).unwrap().pop();
-                                    job = None;
                                     continue;
                                 } else {
                                     break;
