@@ -83,16 +83,9 @@ pub fn main() {
                     stream.shutdown(std::net::Shutdown::Both).unwrap();
                     break;
                 }
-                let request: Request = match serde_json::from_slice(&bytes[..bytes.len() - 1]) {
-                    Ok(request) => request,
-                    Err(e) => {
-                        eprintln!("Error parsing request: {:?}", e);
-                        break;
-                    }
-                };
 
-                let resp = match request {
-                    Request::Put { queue, job, pri } => {
+                let resp = match serde_json::from_slice(&bytes[..bytes.len() - 1]) {
+                    Ok(Request::Put { queue, job, pri }) => {
                         let mut queues = queues_map.lock().unwrap();
                         let id = next_id.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                         queues
@@ -107,7 +100,7 @@ pub fn main() {
                             "id": id,
                         })
                     }
-                    Request::Get { queues, wait } => {
+                    Ok(Request::Get { queues, wait }) => {
                         let mut job;
                         let mut queues_map = queues_map.lock().unwrap();
                         loop {
@@ -153,7 +146,7 @@ pub fn main() {
                             })
                         }
                     }
-                    Request::Delete { id } => {
+                    Ok(Request::Delete { id }) => {
                         // delete from index
                         let mut queues_map = queues_map.lock().unwrap();
                         let status = if queues_map.1.remove(&id).is_some() {
@@ -165,7 +158,7 @@ pub fn main() {
                             "status": status,
                         })
                     }
-                    Request::Abort { id } => {
+                    Ok(Request::Abort { id }) => {
                         // delete from processing, if not deleted (exists in index) put pack in queue
                         let status = 'val: {
                             if let Some(job) = processing.remove(&id) {
@@ -181,6 +174,13 @@ pub fn main() {
                         };
                         json!({
                             "status": status,
+                        })
+                    }
+                    Err(e) => {
+                        eprintln!("Error parsing request: {:?}", e);
+                        json!({
+                            "status": "error",
+                            "error": e.to_string(),
                         })
                     }
                 };
