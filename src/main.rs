@@ -1,5 +1,8 @@
+#![feature(iter_intersperse)]
 #![feature(let_chains)]
 #![feature(linked_list_cursors)]
+#![feature(new_uninit)]
+#![feature(read_buf)]
 #![feature(tcplistener_into_incoming)]
 #![feature(try_blocks)]
 mod p00;
@@ -10,6 +13,7 @@ mod p04;
 mod p05;
 mod p08;
 mod p09;
+mod p10;
 
 fn main() {
     let task: u8 = std::env::args().nth(1).unwrap().parse().unwrap();
@@ -22,6 +26,7 @@ fn main() {
         5 => p05::main(),
         8 => p08::main(),
         9 => p09::main(),
+        10 => p10::main(),
         _ => panic!("Invalid task number"),
     }
 }
