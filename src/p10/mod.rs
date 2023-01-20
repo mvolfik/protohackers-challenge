@@ -167,7 +167,7 @@ pub fn main() {
                                             Entry::File(f) => {
                                                 if parts.peek().is_none() {
                                                     let mut data = vec![0; size];
-                                                    buffer.get_mut().read_exact(&mut data).unwrap();
+                                                    buffer.read_exact(&mut data).unwrap();
                                                     f.push(data);
                                                     break Some(f.len());
                                                 } else {
