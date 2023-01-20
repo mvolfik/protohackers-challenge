@@ -7,18 +7,17 @@ use std::{
 
 const LEGAL_NONALPHANUM: &[char] = &['.', '_', '-', '/'];
 fn get_name_parts(mut n: &str, is_dir: bool) -> Option<impl Iterator<Item = &str>> {
-    if is_dir && n.ends_with('/') {
-        n = &n[..n.len() - 1];
-    }
     if !n.starts_with("/")
         || n.contains("//")
-        || n.ends_with('/')
-        || n.is_empty()
+        || (!is_dir && n.ends_with('/'))
         || !n
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || LEGAL_NONALPHANUM.contains(&c))
     {
         return None;
+    }
+    if is_dir && n.ends_with('/') {
+        n = &n[..n.len() - 1];
     }
     let mut iter = n.split('/');
     iter.next();
