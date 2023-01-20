@@ -22,10 +22,6 @@ struct Entry(HashMap<String, Entry>, Vec<Vec<u8>>);
 pub fn main() {
     let listener = TcpListener::bind("0.0.0.0:1200").unwrap();
     let root: Arc<Mutex<Entry>> = Default::default();
-    root.lock()
-        .unwrap()
-        .0
-        .insert("".to_owned(), Default::default());
     let mut i = 0_u32;
     for incoming in listener.into_incoming() {
         i += 1;
@@ -66,9 +62,13 @@ pub fn main() {
                         if is_name_illegal(words[1], false) {
                             "ERR invalid directory".to_owned()
                         } else {
+                            let mut name = words[1];
+                            if name.ends_with('/') {
+                                name = &name[..name.len() - 1];
+                            }
                             let guard = root.lock().unwrap();
                             let mut current_opt = Some(&*guard);
-                            let mut parts = words[1].split('/');
+                            let mut parts = name.split('/').skip(1);
                             while let Some(current) = current_opt && let Some(next_name) = parts.next() {
                                 current_opt = current.0.get(next_name);
                             }
