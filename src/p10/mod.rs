@@ -6,14 +6,23 @@ use std::{
 };
 
 const LEGAL_NONALPHANUM: &[char] = &['.', '_', '-', '/'];
-fn is_name_illegal(n: &str, is_file: bool) -> bool {
-    !n.starts_with("/")
+fn get_name_parts(mut n: &str, is_dir: bool) -> Option<impl Iterator<Item = &str>> {
+    if is_dir && n.ends_with('/') {
+        n = &n[..n.len() - 1];
+    }
+    if !n.starts_with("/")
         || n.contains("//")
-        || (is_file && n.ends_with('/'))
+        || n.ends_with('/')
         || n.is_empty()
         || !n
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || LEGAL_NONALPHANUM.contains(&c))
+    {
+        return None;
+    }
+    let mut iter = n.split('/');
+    iter.next();
+    Some(iter)
 }
 
 #[derive(Default)]
@@ -59,16 +68,9 @@ pub fn main() {
                     (None, _) => "ERR no command".to_owned(),
                     (Some("HELP"), _) => "OK you should know".to_owned(),
                     (Some("LIST"), 2) => {
-                        if is_name_illegal(words[1], false) {
-                            "ERR invalid directory".to_owned()
-                        } else {
-                            let mut name = words[1];
-                            if name.ends_with('/') {
-                                name = &name[..name.len() - 1];
-                            }
+                        if let Some(mut parts) = get_name_parts(words[1], true) {
                             let guard = root.lock().unwrap();
                             let mut current_opt = Some(&*guard);
-                            let mut parts = name.split('/').skip(1);
                             while let Some(current) = current_opt && let Some(next_name) = parts.next() {
                                 current_opt = current.0.get(next_name);
                             }
@@ -89,16 +91,15 @@ pub fn main() {
                             } else {
                                 "ERR no such directory".to_owned()
                             }
+                        } else {
+                            "ERR invalid directory".to_owned()
                         }
                     }
                     (Some("GET"), len @ 2) | (Some("GET"), len @ 3) => {
                         let name = words[1];
-                        if is_name_illegal(name, true) {
-                            "ERR invalid file".to_owned()
-                        } else {
+                        if let Some(mut parts) = get_name_parts(name, false) {
                             let guard = root.lock().unwrap();
                             let mut current_opt = Some(&*guard);
-                            let mut parts = name.split('/');
                             while let Some(current) = current_opt && let Some(next_name) = parts.next() {
                                 current_opt = current.0.get(next_name);
                             }
@@ -112,50 +113,52 @@ pub fn main() {
                                     Ok(versions.len())
                                 }
                                 .map(|v| v.wrapping_sub(1));
-                                match version_res {
-                                    Ok(v) if v < versions.len() => {
-                                        buffer
-                                            .get_mut()
-                                            .write_all(
-                                                format!("OK {}\n", versions[v].len()).as_bytes(),
-                                            )
-                                            .unwrap();
-                                        buffer.get_mut().write_all(&versions[v]).unwrap();
-                                        buffer.get_mut().write_all(b"READY\n").unwrap();
-                                        continue;
-                                    }
-                                    Ok(_) => format!("ERR no such version {}", words[2]),
-                                    Err(()) => format!("ERR invalid version {}", words[2]),
+                                if let Ok(v) = version_res && v < versions.len() {
+                                    buffer
+                                        .get_mut()
+                                        .write_all(format!("OK {}\n", versions[v].len()).as_bytes())
+                                        .unwrap();
+                                    buffer.get_mut().write_all(&versions[v]).unwrap();
+                                    buffer.get_mut().write_all(b"READY\n").unwrap();
+                                    continue;
+                                } else if version_res.is_ok() {
+                                    format!("ERR no such version {}", words[2])
+                                } else {
+                                    format!("ERR invalid version {}", words[2])
                                 }
                             } else {
                                 "ERR no such file".to_owned()
                             }
+                        } else {
+                            "ERR invalid file".to_owned()
                         }
                     }
                     (Some("PUT"), 3) => {
                         let name = words[1];
-                        if is_name_illegal(name, true) {
-                            "ERR invalid file".to_owned()
-                        } else if let Ok(size) = words[2].parse::<usize>() {
-                            let mut guard = root.lock().unwrap();
-                            let mut current = &mut *guard;
-                            for part in name.split('/') {
-                                current = current.0.entry(part.to_owned()).or_default()
-                            }
-                            let mut data = vec![0; size];
-                            buffer.read_exact(&mut data).unwrap();
-                            if current.1.last() != Some(&data) {
-                                eprintln!(
-                                    "[{i}] data: {}",
-                                    String::from_utf8_lossy(&data).replace('\n', "[\\n]")
-                                );
-                                current.1.push(data);
+                        if let Some(parts) = get_name_parts(name, false) {
+                            if let Ok(size) = words[2].parse::<usize>() {
+                                let mut guard = root.lock().unwrap();
+                                let mut current = &mut *guard;
+                                for part in parts {
+                                    current = current.0.entry(part.to_owned()).or_default()
+                                }
+                                let mut data = vec![0; size];
+                                buffer.read_exact(&mut data).unwrap();
+                                if current.1.last() != Some(&data) {
+                                    eprintln!(
+                                        "[{i}] data: {}",
+                                        String::from_utf8_lossy(&data).replace('\n', "[\\n]")
+                                    );
+                                    current.1.push(data);
+                                } else {
+                                    eprintln!("[{i:0>3}] duplicate");
+                                }
+                                format!("OK r{}", current.1.len())
                             } else {
-                                eprintln!("[{i:0>3}] duplicate");
+                                "ERR invalid size".to_owned()
                             }
-                            format!("OK r{}", current.1.len())
                         } else {
-                            "ERR invalid size".to_owned()
+                            "ERR invalid file".to_owned()
                         }
                     }
                     (Some(x), n) => {
