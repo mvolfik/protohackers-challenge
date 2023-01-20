@@ -69,7 +69,7 @@ pub fn main() {
                                                 }
                                             }))
                                             .intersperse_with(|| "\n".to_owned())
-                                            .collect::<String>()
+                                            .collect::<String>();
                                     }
                                     Some("") => {}
                                     Some(part) => match current.get(part) {
@@ -170,7 +170,9 @@ pub fn main() {
                                                 if parts.peek().is_none() {
                                                     let mut data = vec![0; size];
                                                     buffer.read_exact(&mut data).unwrap();
-                                                    f.push(data);
+                                                    if f.last() != Some(&data) {
+                                                        f.push(data);
+                                                    }
                                                     break Some(f.len());
                                                 } else {
                                                     break None;
