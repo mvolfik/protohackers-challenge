@@ -79,10 +79,10 @@ pub fn main() {
                                 std::iter::once(format!("OK {}", target_dir.len()))
                                     .chain(keys.into_iter().map(|k| {
                                         let item = &target_dir[k];
-                                        if item.0.is_empty() {
+                                        if item.1.is_empty() {
                                             format!("{k}/ DIR")
                                         } else {
-                                            format!("{k} r{}", item.0.len())
+                                            format!("{k} r{}", item.1.len())
                                         }
                                     }))
                                     .intersperse_with(|| "\n".to_owned())
