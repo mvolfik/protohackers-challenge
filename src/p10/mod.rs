@@ -23,7 +23,10 @@ fn is_name_illegal(n: &str, is_file: bool) -> bool {
 pub fn main() {
     let listener = TcpListener::bind("0.0.0.0:1200").unwrap();
     let root = Arc::new(Mutex::new(HashMap::new()));
+    let mut i = 0_u32;
     for incoming in listener.into_incoming() {
+        i += 1;
+        let i = i;
         let mut stream = match incoming {
             Ok(stream) => stream,
             Err(e) => {
@@ -49,7 +52,7 @@ pub fn main() {
                 }
                 line.truncate(line.len() - 1);
 
-                eprintln!("Received request: {:?}", line);
+                eprintln!("[{i}]Received request: {:?}", line);
                 let words = line.split(' ').collect::<Vec<_>>();
                 let mut reply = match (
                     words.get(0).map(|v| v.to_ascii_uppercase()).as_deref(),
@@ -181,7 +184,14 @@ pub fn main() {
                                                     let mut data = vec![0; size];
                                                     buffer.read_exact(&mut data).unwrap();
                                                     if f.last() != Some(&data) {
+                                                        eprintln!(
+                                                            "[{i}] data: {}",
+                                                            String::from_utf8_lossy(&data)
+                                                                .replace('\n', "[\\n]")
+                                                        );
                                                         f.push(data);
+                                                    } else {
+                                                        eprintln!("[{i}] duplicate");
                                                     }
                                                     break Some(f.len());
                                                 } else {
