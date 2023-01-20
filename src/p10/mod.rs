@@ -5,14 +5,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-enum Entry {
-    File(Vec<Vec<u8>>),
-    Directory(HashMap<String, Entry>),
-}
-
 const LEGAL_NONALPHANUM: &[char] = &['.', '_', '-', '/'];
 fn is_name_illegal(n: &str, is_file: bool) -> bool {
-    n.contains("//")
+    !n.starts_with("/")
+        || n.contains("//")
         || (is_file && n.ends_with('/'))
         || n.is_empty()
         || !n
@@ -20,9 +16,16 @@ fn is_name_illegal(n: &str, is_file: bool) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || LEGAL_NONALPHANUM.contains(&c))
 }
 
+#[derive(Default)]
+struct Entry(HashMap<String, Entry>, Vec<Vec<u8>>);
+
 pub fn main() {
     let listener = TcpListener::bind("0.0.0.0:1200").unwrap();
-    let root = Arc::new(Mutex::new(HashMap::new()));
+    let root: Arc<Mutex<Entry>> = Default::default();
+    root.lock()
+        .unwrap()
+        .0
+        .insert("".to_owned(), Default::default());
     let mut i = 0_u32;
     for incoming in listener.into_incoming() {
         i += 1;
@@ -37,7 +40,6 @@ pub fn main() {
         let root = Arc::clone(&root);
         std::thread::spawn(move || {
             stream.write_all(b"READY\n").unwrap();
-            let EMPTY = HashMap::new();
             let mut buffer = BufReader::new(stream);
             let mut line = String::new();
             loop {
@@ -52,7 +54,7 @@ pub fn main() {
                 }
                 line.truncate(line.len() - 1);
 
-                eprintln!("[{i}]Received request: {:?}", line);
+                eprintln!("[{i}] Received request: {:?}", line);
                 let words = line.split(' ').collect::<Vec<_>>();
                 let mut reply = match (
                     words.get(0).map(|v| v.to_ascii_uppercase()).as_deref(),
@@ -65,36 +67,27 @@ pub fn main() {
                             "ERR invalid directory".to_owned()
                         } else {
                             let guard = root.lock().unwrap();
-                            let mut current = &*guard;
+                            let mut current_opt = Some(&*guard);
                             let mut parts = words[1].split('/');
-                            loop {
-                                match parts.next() {
-                                    None => {
-                                        let mut items = current.keys().collect::<Vec<_>>();
-                                        items.sort();
-                                        break std::iter::once(format!("OK {}", current.len()))
-                                            .chain(items.into_iter().map(|k| match &current[k] {
-                                                Entry::File(versions) => {
-                                                    format!("{k} r{}", versions.len())
-                                                }
-                                                Entry::Directory(_) => {
-                                                    format!("{k}/ DIR")
-                                                }
-                                            }))
-                                            .intersperse_with(|| "\n".to_owned())
-                                            .collect::<String>();
-                                    }
-                                    Some("") => {}
-                                    Some(part) => match current.get(part) {
-                                        Some(Entry::Directory(dir)) => {
-                                            current = dir;
+                            while let Some(current) = current_opt && let Some(next_name) = parts.next() {
+                                current_opt = current.0.get(next_name);
+                            }
+                            if let Some(Entry(target_dir, _)) = current_opt {
+                                let mut keys = target_dir.keys().collect::<Vec<_>>();
+                                keys.sort();
+                                std::iter::once(format!("OK {}", target_dir.len()))
+                                    .chain(keys.into_iter().map(|k| {
+                                        let item = &target_dir[k];
+                                        if item.0.is_empty() {
+                                            format!("{k}/ DIR")
+                                        } else {
+                                            format!("{k} r{}", item.0.len())
                                         }
-                                        Some(Entry::File(_)) | None => {
-                                            current = &EMPTY;
-                                            while parts.next().is_some() {}
-                                        }
-                                    },
-                                }
+                                    }))
+                                    .intersperse_with(|| "\n".to_owned())
+                                    .collect::<String>()
+                            } else {
+                                "ERR no such directory".to_owned()
                             }
                         }
                     }
@@ -104,57 +97,38 @@ pub fn main() {
                             "ERR invalid file".to_owned()
                         } else {
                             let guard = root.lock().unwrap();
-                            let mut current = &*guard;
-                            let mut parts = name.split('/').peekable();
-                            let found = loop {
-                                match parts.next() {
-                                    None => break false,
-                                    Some("") => {}
-                                    Some(part) => match current.get(part) {
-                                        Some(Entry::Directory(d)) => {
-                                            current = d;
-                                        }
-                                        Some(Entry::File(versions)) => {
-                                            if parts.peek().is_none() {
-                                                let version = if len == 3 {
-                                                    match words[2][1..].parse::<usize>() {
-                                                        Ok(v) => v,
-                                                        Err(_) => {
-                                                            break false;
-                                                        }
-                                                    }
-                                                } else {
-                                                    versions.len()
-                                                }
-                                                .wrapping_sub(1);
-                                                if version >= versions.len() {
-                                                    break false;
-                                                }
-                                                buffer
-                                                    .get_mut()
-                                                    .write_all(
-                                                        format!("OK {}\n", versions[version].len())
-                                                            .as_bytes(),
-                                                    )
-                                                    .unwrap();
-                                                buffer
-                                                    .get_mut()
-                                                    .write_all(&versions[version])
-                                                    .unwrap();
-                                                buffer.get_mut().write_all(b"READY\n").unwrap();
-                                                break true;
-                                            } else {
-                                                break false;
-                                            }
-                                        }
-                                        None => break false,
-                                    },
+                            let mut current_opt = Some(&*guard);
+                            let mut parts = name.split('/');
+                            while let Some(current) = current_opt && let Some(next_name) = parts.next() {
+                                current_opt = current.0.get(next_name);
+                            }
+                            if let Some(Entry(_, versions)) = current_opt {
+                                let version_res = if len == 3 {
+                                    match words[2][1..].parse::<usize>() {
+                                        Ok(v) => Ok(v),
+                                        Err(_) => Err(()),
+                                    }
+                                } else {
+                                    Ok(versions.len())
                                 }
-                            };
-                            if found {
-                                continue;
+                                .map(|v| v.wrapping_sub(1));
+                                match version_res {
+                                    Ok(v) if v < versions.len() => {
+                                        buffer
+                                            .get_mut()
+                                            .write_all(
+                                                format!("OK {}\n", versions[v].len()).as_bytes(),
+                                            )
+                                            .unwrap();
+                                        buffer.get_mut().write_all(&versions[v]).unwrap();
+                                        buffer.get_mut().write_all(b"READY\n").unwrap();
+                                        continue;
+                                    }
+                                    Ok(_) => format!("ERR no such version {}", words[2]),
+                                    Err(()) => format!("ERR invalid version {}", words[2]),
+                                }
                             } else {
-                                "ERR file or version not found".to_owned()
+                                "ERR no such file".to_owned()
                             }
                         }
                     }
@@ -165,51 +139,21 @@ pub fn main() {
                         } else if let Ok(size) = words[2].parse::<usize>() {
                             let mut guard = root.lock().unwrap();
                             let mut current = &mut *guard;
-                            let mut parts = name.split('/').peekable();
-                            let revision = loop {
-                                match parts.next() {
-                                    None => break None,
-                                    Some("") => {}
-                                    Some(part) => {
-                                        match current.entry(part.to_owned()).or_insert_with(|| {
-                                            // FIXME: if reading fails after this, it will create a file with no revisions
-                                            if parts.peek().is_none() {
-                                                Entry::File(Vec::new())
-                                            } else {
-                                                Entry::Directory(HashMap::new())
-                                            }
-                                        }) {
-                                            Entry::File(f) => {
-                                                if parts.peek().is_none() {
-                                                    let mut data = vec![0; size];
-                                                    buffer.read_exact(&mut data).unwrap();
-                                                    if f.last() != Some(&data) {
-                                                        eprintln!(
-                                                            "[{i}] data: {}",
-                                                            String::from_utf8_lossy(&data)
-                                                                .replace('\n', "[\\n]")
-                                                        );
-                                                        f.push(data);
-                                                    } else {
-                                                        eprintln!("[{i}] duplicate");
-                                                    }
-                                                    break Some(f.len());
-                                                } else {
-                                                    break None;
-                                                }
-                                            }
-                                            Entry::Directory(d) => {
-                                                current = d;
-                                            }
-                                        }
-                                    }
-                                }
-                            };
-                            if let Some(rev) = revision {
-                                format!("OK r{}", rev)
-                            } else {
-                                "ERR invalid file".to_owned()
+                            for part in name.split('/') {
+                                current = current.0.entry(part.to_owned()).or_default()
                             }
+                            let mut data = vec![0; size];
+                            buffer.read_exact(&mut data).unwrap();
+                            if current.1.last() != Some(&data) {
+                                eprintln!(
+                                    "[{i}] data: {}",
+                                    String::from_utf8_lossy(&data).replace('\n', "[\\n]")
+                                );
+                                current.1.push(data);
+                            } else {
+                                eprintln!("[{i:0>3}] duplicate");
+                            }
+                            format!("OK {}", current.1.len())
                         } else {
                             "ERR invalid size".to_owned()
                         }
