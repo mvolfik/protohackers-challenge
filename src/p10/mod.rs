@@ -153,7 +153,7 @@ pub fn main() {
                             } else {
                                 eprintln!("[{i:0>3}] duplicate");
                             }
-                            format!("OK {}", current.1.len())
+                            format!("OK r{}", current.1.len())
                         } else {
                             "ERR invalid size".to_owned()
                         }
