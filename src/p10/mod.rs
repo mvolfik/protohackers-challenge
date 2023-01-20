@@ -12,7 +12,12 @@ enum Entry {
 
 const LEGAL_NONALPHANUM: &[char] = &['.', '_', '-', '/'];
 fn is_name_illegal(n: &str, is_file: bool) -> bool {
-    n.contains("//") || (is_file && n.ends_with('/')) || n.is_empty() || !n.chars().all(|c| c.is_ascii_alphanumeric() || LEGAL_NONALPHANUM.contains(&c))
+    n.contains("//")
+        || (is_file && n.ends_with('/'))
+        || n.is_empty()
+        || !n
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || LEGAL_NONALPHANUM.contains(&c))
 }
 
 pub fn main() {
