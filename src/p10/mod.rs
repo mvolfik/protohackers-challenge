@@ -10,6 +10,11 @@ enum Entry {
     Directory(HashMap<String, Entry>),
 }
 
+const LEGAL_NONALPHANUM: &[char] = &['.', '_', '-', '/'];
+fn is_name_illegal(n: &str, is_file: bool) -> bool {
+    n.contains("//") || (is_file && n.ends_with('/')) || n.is_empty() || !n.chars().all(|c| c.is_ascii_alphanumeric() || LEGAL_NONALPHANUM.contains(&c))
+}
+
 pub fn main() {
     let listener = TcpListener::bind("0.0.0.0:1200").unwrap();
     let root = Arc::new(Mutex::new(HashMap::new()));
@@ -48,7 +53,7 @@ pub fn main() {
                     (None, _) => "ERR no command".to_owned(),
                     (Some("HELP"), _) => "OK you should know".to_owned(),
                     (Some("LIST"), 2) => {
-                        if words[1].contains("//") {
+                        if is_name_illegal(words[1], false) {
                             "ERR invalid directory".to_owned()
                         } else {
                             let guard = root.lock().unwrap();
@@ -87,7 +92,7 @@ pub fn main() {
                     }
                     (Some("GET"), len @ 2) | (Some("GET"), len @ 3) => {
                         let name = words[1];
-                        if name.contains("//") || name.ends_with('/') {
+                        if is_name_illegal(name, true) {
                             "ERR invalid file".to_owned()
                         } else {
                             let guard = root.lock().unwrap();
@@ -147,7 +152,7 @@ pub fn main() {
                     }
                     (Some("PUT"), 3) => {
                         let name = words[1];
-                        if name.contains("//") || name.ends_with('/') {
+                        if is_name_illegal(name, true) {
                             "ERR invalid file".to_owned()
                         } else if let Ok(size) = words[2].parse::<usize>() {
                             let mut guard = root.lock().unwrap();
