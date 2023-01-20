@@ -57,8 +57,10 @@ pub fn main() {
                             loop {
                                 match parts.next() {
                                     None => {
+                                        let mut items = current.keys().collect::<Vec<_>>();
+                                        items.sort();
                                         break std::iter::once(format!("OK {}", current.len()))
-                                            .chain(current.iter().map(|(k, v)| match v {
+                                            .chain(items.into_iter().map(|k| match &current[k] {
                                                 Entry::File(versions) => {
                                                     format!("{k} r{}", versions.len())
                                                 }
