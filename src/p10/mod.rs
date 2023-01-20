@@ -143,16 +143,20 @@ pub fn main() {
                                 }
                                 let mut data = vec![0; size];
                                 buffer.read_exact(&mut data).unwrap();
-                                if current.1.last() != Some(&data) {
-                                    eprintln!(
-                                        "[{i}] data: {}",
-                                        String::from_utf8_lossy(&data).replace('\n', "[\\n]")
-                                    );
-                                    current.1.push(data);
+                                if !data.iter().all(|b| b.is_ascii_graphic() || b.is_ascii_whitespace()) {
+                                    "ERR invalid data".to_owned()
                                 } else {
-                                    eprintln!("[{i:0>3}] duplicate");
+                                    if current.1.last() == Some(&data) {
+                                        eprintln!("[{i:0>3}] duplicate");
+                                    } else {
+                                        eprintln!(
+                                            "[{i}] data: {}",
+                                            String::from_utf8_lossy(&data).replace('\n', "[\\n]")
+                                        );
+                                        current.1.push(data);
+                                    }
+                                    format!("OK r{}", current.1.len())
                                 }
-                                format!("OK r{}", current.1.len())
                             } else {
                                 "ERR invalid size".to_owned()
                             }
