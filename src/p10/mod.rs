@@ -25,7 +25,7 @@ fn get_name_parts(mut n: &str, is_dir: bool) -> Option<impl Iterator<Item = &str
 }
 
 #[derive(Default)]
-struct Entry(HashMap<String, Entry>, Vec<Vec<u8>>);
+struct Entry(HashMap<String, Arc<Mutex<Entry>>>, Vec<Vec<u8>>);
 
 pub fn main() {
     let listener = TcpListener::bind("0.0.0.0:1200").unwrap();
@@ -68,21 +68,21 @@ pub fn main() {
                     (Some("HELP"), _) => "OK you should know".to_owned(),
                     (Some("LIST"), 2) => {
                         if let Some(mut parts) = get_name_parts(words[1], true) {
-                            let guard = root.lock().unwrap();
-                            let mut current_opt = Some(&*guard);
-                            while let Some(current) = current_opt && let Some(next_name) = parts.next() {
-                                current_opt = current.0.get(next_name);
+                            let mut current_opt = Some(Arc::clone(&root));
+                            while let Some(next_name) = parts.next() && let Some(current) = current_opt {
+                                current_opt = current.lock().unwrap().0.get(next_name).cloned();
                             }
-                            if let Some(Entry(target_dir, _)) = current_opt {
+                            if let Some(lock) = current_opt {
+                                let target_dir = &lock.lock().unwrap().0;
                                 let mut keys = target_dir.keys().collect::<Vec<_>>();
                                 keys.sort();
                                 std::iter::once(format!("OK {}", target_dir.len()))
                                     .chain(keys.into_iter().map(|k| {
-                                        let item = &target_dir[k];
-                                        if item.1.is_empty() {
+                                        let revisions = target_dir[k].lock().unwrap().1.len();
+                                        if revisions == 0 {
                                             format!("{k}/ DIR")
                                         } else {
-                                            format!("{k} r{}", item.1.len())
+                                            format!("{k} r{revisions}")
                                         }
                                     }))
                                     .intersperse_with(|| "\n".to_owned())
@@ -97,12 +97,12 @@ pub fn main() {
                     (Some("GET"), len @ 2) | (Some("GET"), len @ 3) => {
                         let name = words[1];
                         if let Some(mut parts) = get_name_parts(name, false) {
-                            let guard = root.lock().unwrap();
-                            let mut current_opt = Some(&*guard);
-                            while let Some(current) = current_opt && let Some(next_name) = parts.next() {
-                                current_opt = current.0.get(next_name);
+                            let mut current_opt = Some(Arc::clone(&root));
+                            while let Some(next_name) = parts.next() && let Some(current) = current_opt {
+                                current_opt = current.lock().unwrap().0.get(next_name).cloned();
                             }
-                            if let Some(Entry(_, versions)) = current_opt {
+                            if let Some(lock) = current_opt {
+                                let versions = &mut lock.lock().unwrap().1;
                                 let version_res = if len == 3 {
                                     match words[2][1..].parse::<usize>() {
                                         Ok(v) => Ok(v),
@@ -136,16 +136,27 @@ pub fn main() {
                         let name = words[1];
                         if let Some(parts) = get_name_parts(name, false) {
                             if let Ok(size) = words[2].parse::<usize>() {
-                                let mut guard = root.lock().unwrap();
-                                let mut current = &mut *guard;
+                                let mut current = Arc::clone(&root);
                                 for part in parts {
-                                    current = current.0.entry(part.to_owned()).or_default()
+                                    let new = Arc::clone(
+                                        current
+                                            .lock()
+                                            .unwrap()
+                                            .0
+                                            .entry(part.to_owned())
+                                            .or_default(),
+                                    );
+                                    current = new;
                                 }
                                 let mut data = vec![0; size];
                                 buffer.read_exact(&mut data).unwrap();
-                                if !data.iter().all(|b| b.is_ascii_graphic() || b.is_ascii_whitespace()) {
+                                if !data
+                                    .iter()
+                                    .all(|b| b.is_ascii_graphic() || b.is_ascii_whitespace())
+                                {
                                     "ERR invalid data".to_owned()
                                 } else {
+                                    let mut current = current.lock().unwrap();
                                     if current.1.last() == Some(&data) {
                                         eprintln!("[{i:0>3}] duplicate");
                                     } else {
