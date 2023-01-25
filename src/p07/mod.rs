@@ -101,7 +101,7 @@ pub fn main() {
                     let acked: usize = parts[2].parse().ok()?;
                     if acked > *tx_acked {
                         *tx_buf = tx_buf[acked - *tx_acked..].to_owned();
-                        *tx_acked += acked;
+                        *tx_acked = acked;
                         send(&socket, id, addr, *tx_acked, tx_buf);
                     }
                 }
