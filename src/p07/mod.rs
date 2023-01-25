@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{hash_map::Entry, HashMap},
     mem,
     net::{SocketAddr, UdpSocket},
     sync::{mpsc, Arc},
@@ -61,8 +61,14 @@ pub fn main() {
             match (parts.get(0)?.as_ref(), parts.len()) {
                 ("connect", 2) => {
                     let id = parts[1].parse().ok()?;
-                    sessions.insert(id, (addr, 0, String::new(), 0, String::new()));
-                    if let Err(e) = socket.send_to(format!("/ack/{id}/0/").as_bytes(), addr) {
+                    let rxd = match sessions.entry(id) {
+                        Entry::Occupied(e) => e.get().1,
+                        Entry::Vacant(e) => {
+                            e.insert((addr, 0, String::new(), 0, String::new()));
+                            0
+                        }
+                    };
+                    if let Err(e) = socket.send_to(format!("/ack/{id}/{rxd}/").as_bytes(), addr) {
                         eprintln!("Error: {e:?}");
                     }
                 }
