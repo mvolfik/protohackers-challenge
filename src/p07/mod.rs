@@ -23,12 +23,12 @@ pub fn main() {
                         if size == 0 {
                             None?;
                         }
-                        let string = String::from_utf8(buf[..size].to_owned())
-                            .ok()?
+                        let string = String::from_utf8(buf[..size].to_owned()).ok()?;
+                        eprintln!("{addr}: `{string}`");
+                        let string = string
                             .replace("\\\\", "ň")
                             .replace("\\/", "č")
                             .replace('ň', "\\");
-                        eprintln!("{addr}: `{string}`");
                         if !string.starts_with('/') || !string.ends_with('/') {
                             None?;
                         }
