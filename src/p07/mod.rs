@@ -130,9 +130,10 @@ fn send(sock: &UdpSocket, id: u32, addr: SocketAddr, tx_acked: usize, tx_buf: &S
             let new_i = tx_buf.len().min(900 + i);
             let tx_dat = tx_buf[i..new_i].replace('\\', "\\\\").replace('/', "\\/");
             eprintln!("{id}[TX]: {tx_dat:?}");
-            if let Err(e) =
-                sock.send_to(format!("/data/{id}/{tx_acked}/{tx_dat}/").as_bytes(), addr)
-            {
+            if let Err(e) = sock.send_to(
+                format!("/data/{id}/{}/{tx_dat}/", tx_acked + i).as_bytes(),
+                addr,
+            ) {
                 eprintln!("Error: {e:?}");
                 break;
             }
