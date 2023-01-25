@@ -109,6 +109,7 @@ pub fn main() {
                         if acked - *tx_acked > tx_buf.len() {
                             tx.send((vec!["close".to_owned(), id.to_string()], addr))
                                 .unwrap();
+                            continue;
                         }
                         eprintln!("{id}[TXa]: {acked} {tx_acked}");
                         *tx_buf = tx_buf[acked - *tx_acked..].to_owned();
