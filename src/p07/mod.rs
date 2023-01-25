@@ -28,6 +28,7 @@ pub fn main() {
                             .replace("\\\\", "ň")
                             .replace("\\/", "č")
                             .replace('ň', "\\");
+                        eprintln!("{addr}: `{string}`");
                         if !string.starts_with('/') || !string.ends_with('/') {
                             None?;
                         }
