@@ -129,7 +129,9 @@ pub fn main() {
 
 fn send(sock: &UdpSocket, id: u32, addr: SocketAddr, tx_acked: usize, tx_buf: &String) {
     if !tx_buf.is_empty() {
-        let tx_dat = tx_buf[..999].replace('\\', "\\\\").replace('/', "\\/");
+        let tx_dat = tx_buf[..tx_buf.len().max(999)]
+            .replace('\\', "\\\\")
+            .replace('/', "\\/");
         eprintln!("{id}[TX]: {tx_dat:?}");
         if let Err(e) = sock.send_to(format!("/data/{id}/{tx_acked}/{tx_dat}/").as_bytes(), addr) {
             eprintln!("Error: {e:?}");
