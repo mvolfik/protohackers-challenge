@@ -24,7 +24,6 @@ pub fn main() {
                             None?;
                         }
                         let string = String::from_utf8(buf[..size].to_owned()).ok()?;
-                        eprintln!("{addr}: `{string}`");
                         let string = string
                             .replace("\\\\", "ň")
                             .replace("\\/", "č")
@@ -38,7 +37,6 @@ pub fn main() {
                             .map(|p| p.replace("č", "/"))
                             .collect::<Vec<_>>();
                         assert_eq!(parts.pop(), Some("".to_string()));
-                        eprintln!("{addr}: {parts:?}");
                         tx.send((parts, addr)).ok()?;
                     };
                 }
@@ -109,8 +107,8 @@ pub fn main() {
                     if acked > *tx_acked {
                         *tx_buf = tx_buf[acked - *tx_acked..].to_owned();
                         *tx_acked = acked;
-                        send(&socket, id, addr, *tx_acked, tx_buf);
                     }
+                    send(&socket, id, addr, *tx_acked, tx_buf);
                 }
                 ("close", 2) => {
                     let id = parts[1].parse().ok()?;
@@ -119,9 +117,7 @@ pub fn main() {
                         .send_to(format!("/close/{id}/").as_bytes(), addr)
                         .ok()?;
                 }
-                _ => {
-                    eprintln!("Invalid message");
-                }
+                _ => {}
             };
         };
     }
@@ -129,12 +125,18 @@ pub fn main() {
 
 fn send(sock: &UdpSocket, id: u32, addr: SocketAddr, tx_acked: usize, tx_buf: &String) {
     if !tx_buf.is_empty() {
-        let tx_dat = tx_buf[..tx_buf.len().min(900)]
-            .replace('\\', "\\\\")
-            .replace('/', "\\/");
-        eprintln!("{id}[TX]: {tx_dat:?}");
-        if let Err(e) = sock.send_to(format!("/data/{id}/{tx_acked}/{tx_dat}/").as_bytes(), addr) {
-            eprintln!("Error: {e:?}");
+        let mut i = 0;
+        while i < tx_buf.len() {
+            let new_i = tx_buf.len().min(900 + i);
+            let tx_dat = tx_buf[i..new_i].replace('\\', "\\\\").replace('/', "\\/");
+            eprintln!("{id}[TX]: {tx_dat:?}");
+            if let Err(e) =
+                sock.send_to(format!("/data/{id}/{tx_acked}/{tx_dat}/").as_bytes(), addr)
+            {
+                eprintln!("Error: {e:?}");
+                break;
+            }
+            i = new_i;
         }
     }
 }
