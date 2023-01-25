@@ -87,7 +87,6 @@ pub fn main() {
                             tx_buf.extend(line.chars().rev());
                             tx_buf.push('\n');
                         }
-                        eprintln!("{id}[TX]: {tx_buf:?}");
                         send(&socket, id, addr, *tx_acked, tx_buf);
                     }
                     if let Err(e) =
@@ -123,6 +122,7 @@ pub fn main() {
 
 fn send(sock: &UdpSocket, id: u32, addr: SocketAddr, tx_acked: usize, tx_buf: &String) {
     if !tx_buf.is_empty() {
+        eprintln!("{id}[TX]: {tx_buf:?}");
         if let Err(e) = sock.send_to(format!("/data/{id}/{tx_acked}/{tx_buf}/").as_bytes(), addr) {
             eprintln!("Error: {e:?}");
         }
