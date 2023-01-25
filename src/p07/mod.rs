@@ -83,7 +83,7 @@ pub fn main() {
                         {
                             eprintln!("Error: {e:?}");
                         }
-                        eprintln!("{id}[RX]: {rx_buf:?}");
+                        eprintln!("{id}[RXa]: {my_rx_pos} {rx_buf:?}");
                         loop {
                             let Some(nl_pos) = rx_buf.find('\n') else { break; };
                             let mut line = rx_buf.split_off(nl_pos + 1);
@@ -105,6 +105,7 @@ pub fn main() {
                     let (_, _, _, tx_acked, tx_buf) = sessions.get_mut(&id)?;
                     let acked: usize = parts[2].parse().ok()?;
                     if acked > *tx_acked {
+                        eprintln!("{id}[TXa]: {acked} {tx_acked}");
                         *tx_buf = tx_buf[acked - *tx_acked..].to_owned();
                         *tx_acked = acked;
                     }
