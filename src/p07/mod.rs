@@ -14,6 +14,7 @@ pub fn main() {
     let mut sessions = HashMap::<u32, _>::new();
     let (tx, rx) = mpsc::channel();
     let rx_sock = Arc::clone(&socket);
+    let tx_clone = tx.clone();
     thread::spawn(move || {
         let mut buf = vec![0; 1024];
         loop {
@@ -34,10 +35,10 @@ pub fn main() {
                         let mut parts = string
                             .split('/')
                             .skip(1)
-                            .map(|p| p.replace("č", "/"))
+                            .map(|p| p.replace('č', "/"))
                             .collect::<Vec<_>>();
-                        assert_eq!(parts.pop(), Some("".to_string()));
-                        tx.send((parts, addr)).ok()?;
+                        assert_eq!(parts.pop(), Some(String::new()));
+                        tx_clone.send((parts, addr)).ok()?;
                     };
                 }
                 Err(e) => eprintln!("Error: {e:?}"),
@@ -104,7 +105,11 @@ pub fn main() {
                     let id = parts[1].parse().ok()?;
                     let (_, _, _, tx_acked, tx_buf) = sessions.get_mut(&id)?;
                     let acked: usize = parts[2].parse().ok()?;
-                    if acked > *tx_acked && acked - *tx_acked <= tx_buf.len() {
+                    if acked > *tx_acked {
+                        if acked - *tx_acked <= tx_buf.len() {
+                            tx.send((vec!["close".to_owned(), id.to_string()], addr))
+                                .unwrap();
+                        }
                         eprintln!("{id}[TXa]: {acked} {tx_acked}");
                         *tx_buf = tx_buf[acked - *tx_acked..].to_owned();
                         *tx_acked = acked;
