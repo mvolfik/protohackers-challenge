@@ -129,7 +129,7 @@ pub fn main() {
 
 fn send(sock: &UdpSocket, id: u32, addr: SocketAddr, tx_acked: usize, tx_buf: &String) {
     if !tx_buf.is_empty() {
-        let tx_dat = tx_buf[..tx_buf.len().max(999)]
+        let tx_dat = tx_buf[..tx_buf.len().min(999)]
             .replace('\\', "\\\\")
             .replace('/', "\\/");
         eprintln!("{id}[TX]: {tx_dat:?}");
