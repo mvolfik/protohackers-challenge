@@ -78,7 +78,7 @@ pub fn main() {
                         {
                             eprintln!("Error: {e:?}");
                         }
-                        eprintln!("{id}: {rx_buf:?}");
+                        eprintln!("{id}[RX]: {rx_buf:?}");
                         loop {
                             let Some(nl_pos) = rx_buf.find('\n') else { break; };
                             let mut line = rx_buf.split_off(nl_pos + 1);
@@ -87,6 +87,7 @@ pub fn main() {
                             tx_buf.extend(line.chars().rev());
                             tx_buf.push('\n');
                         }
+                        eprintln!("{id}[TX]: {tx_buf:?}");
                         send(&socket, id, addr, *tx_acked, tx_buf);
                     }
                     if let Err(e) =
