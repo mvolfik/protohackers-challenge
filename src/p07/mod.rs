@@ -104,12 +104,12 @@ pub fn main() {
                     let id = parts[1].parse().ok()?;
                     let (_, _, _, tx_acked, tx_buf) = sessions.get_mut(&id)?;
                     let acked: usize = parts[2].parse().ok()?;
-                    if acked > *tx_acked {
+                    if acked > *tx_acked && acked - *tx_acked <= tx_buf.len() {
                         eprintln!("{id}[TXa]: {acked} {tx_acked}");
                         *tx_buf = tx_buf[acked - *tx_acked..].to_owned();
                         *tx_acked = acked;
+                        send(&socket, id, addr, *tx_acked, tx_buf);
                     }
-                    send(&socket, id, addr, *tx_acked, tx_buf);
                 }
                 ("close", 2) => {
                     let id = parts[1].parse().ok()?;
@@ -130,7 +130,7 @@ fn send(sock: &UdpSocket, id: u32, addr: SocketAddr, tx_acked: usize, tx_buf: &S
         while i < tx_buf.len() {
             let new_i = tx_buf.len().min(900 + i);
             let tx_dat = tx_buf[i..new_i].replace('\\', "\\\\").replace('/', "\\/");
-            eprintln!("{id}[TX]: {tx_dat:?}");
+            eprintln!("{id}[TX]: {} {tx_dat:?}", tx_acked + i);
             if let Err(e) = sock.send_to(
                 format!("/data/{id}/{}/{tx_dat}/", tx_acked + i).as_bytes(),
                 addr,
