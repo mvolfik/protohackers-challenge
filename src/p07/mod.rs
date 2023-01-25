@@ -106,7 +106,7 @@ pub fn main() {
                     let (_, _, _, tx_acked, tx_buf) = sessions.get_mut(&id)?;
                     let acked: usize = parts[2].parse().ok()?;
                     if acked > *tx_acked {
-                        if acked - *tx_acked <= tx_buf.len() {
+                        if acked - *tx_acked > tx_buf.len() {
                             tx.send((vec!["close".to_owned(), id.to_string()], addr))
                                 .unwrap();
                         }
